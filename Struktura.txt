@@ -1,0 +1,7 @@
+stream_brain/
+ ├── main.py
+ ├── brain.py
+ ├── memory.py
+ ├── vision.py
+ ├── audio.py
+ └── config.py
