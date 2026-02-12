@@ -21,6 +21,9 @@ from decision import decision_engine
 # latent self speech
 from self_speech import speak_from_latent
 
+# latent segmenter
+from segmenter import segmenter
+
 from brain import model, init_state
 from memory import (
     maybe_save, try_load,
@@ -35,8 +38,8 @@ from memory import (
 # -------------------------
 
 AUDIO_ENABLED = True
-SPEECH_INTERVAL = 1.2   # sekund
-SAVE_INTERVAL = 300     # 5 minut
+SPEECH_INTERVAL = 1.2   # sec
+SAVE_INTERVAL = 300     # sec
 
 # -------------------------
 # Optimizer
@@ -82,7 +85,6 @@ def audio_loop():
         if f is not None:
             q.put(("a", f))
 
-
 # -------------------------
 # Safe shutdown
 # -------------------------
@@ -115,7 +117,7 @@ signal.signal(signal.SIGTERM, safe_shutdown)
 Thread(target=vision_loop, daemon=True).start()
 Thread(target=audio_loop, daemon=True).start()
 
-print("CORE v10 adaptive ishlayapti")
+print("CORE v11 adaptive ishlayapti")
 
 # -------------------------
 # Stats
@@ -123,7 +125,6 @@ print("CORE v10 adaptive ishlayapti")
 
 curiosity_hist = []
 step = 0
-
 last_save = time.time()
 last_speech = 0
 
@@ -139,12 +140,22 @@ while RUNNING:
     state = state.detach()
 
     # -------------------------
+    # Latent segmentation (NEW)
+    # -------------------------
+
+    seg = segmenter.step(z)
+
+    if seg is not None:
+        print("SEGMENT TOPILDI:", seg.shape)
+        seg_vec = seg.mean(dim=0)
+        remember(seg_vec, 1.0)
+
+    # -------------------------
     # Loss
     # -------------------------
 
     pred_loss = F.mse_loss(pred, z.detach())
     action_energy = action.pow(2).mean()
-
     loss = pred_loss * 0.01 + 0.01 * action_energy
 
     optimizer.zero_grad()
